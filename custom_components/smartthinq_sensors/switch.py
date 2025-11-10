@@ -25,6 +25,7 @@ from .device_helpers import STATE_LOOKUP, LGEBaseDevice
 from .wideq import (
     WM_DEVICE_TYPES,
     AirConditionerFeatures,
+    DehumidifierFeatures,
     DeviceType,
     MicroWaveFeatures,
     RefrigeratorFeatures,
@@ -141,11 +142,28 @@ MICROWAVE_SWITCH: tuple[ThinQSwitchEntityDescription, ...] = (
     ),
 )
 
+DEHUMIDIFIER_SWITCH: tuple[ThinQSwitchEntityDescription, ...] = (
+    ThinQSwitchEntityDescription(
+        key=DehumidifierFeatures.UVNANO,
+        name="UVnano",
+        icon="mdi:spotlight-beam",
+        turn_off_fn=lambda x: x.device.set_uv_nano(False),
+        turn_on_fn=lambda x: x.device.set_uv_nano(True),
+    ),
+    ThinQSwitchEntityDescription(
+        key=DehumidifierFeatures.MODE_AIRCLEAN,
+        name="Ionizer",
+        icon="mdi:atom-variant",
+        turn_off_fn=lambda x: x.device.set_mode_airclean(False),
+        turn_on_fn=lambda x: x.device.set_mode_airclean(True),
+    ),
+)
 
 SWITCH_ENTITIES = {
     DeviceType.AC: AC_SWITCH,
     DeviceType.MICROWAVE: MICROWAVE_SWITCH,
     DeviceType.REFRIGERATOR: REFRIGERATOR_SWITCH,
+    DeviceType.DEHUMIDIFIER: DEHUMIDIFIER_SWITCH,
     **{dev_type: WASH_DEV_SWITCH for dev_type in WM_DEVICE_TYPES},
 }
 
