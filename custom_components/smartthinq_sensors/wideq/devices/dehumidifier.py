@@ -28,6 +28,8 @@ STATE_PM1 = ["SensorPM1", "airState.quality.PM1"]
 STATE_PM10 = ["SensorPM10", "airState.quality.PM10"]
 STATE_PM25 = ["SensorPM2", "airState.quality.PM2"]
 STATE_TANK_LIGHT = ["WatertankLight", "airState.miscFuncState.watertankLight"]
+STATE_UV_NANO = ["UVNano", "airState.miscFuncState.Uvnano"]
+STATE_MODE_AIRCLEAN = ["AirClean", "airState.miscFuncState.airRemoval"]
 
 STATE_POWER = [STATE_POWER_V1, "airState.energy.onCurrent"]
 
@@ -35,6 +37,8 @@ CMD_STATE_OPERATION = [CTRL_BASIC, "Set", STATE_OPERATION]
 CMD_STATE_OP_MODE = [CTRL_BASIC, "Set", STATE_OPERATION_MODE]
 CMD_STATE_TARGET_HUM = [CTRL_BASIC, "Set", STATE_TARGET_HUM]
 CMD_STATE_WIND_STRENGTH = [CTRL_BASIC, "Set", STATE_WIND_STRENGTH]
+CMD_STATE_UV_NANO = [CTRL_BASIC, "Set", STATE_UV_NANO]
+CMD_STATE_MODE_AIRCLEAN = [CTRL_BASIC, "Set", STATE_MODE_AIRCLEAN]
 
 CMD_ENABLE_EVENT_V2 = ["allEventEnable", "Set", "airState.mon.timeout"]
 
@@ -44,6 +48,9 @@ DEFAULT_STEP_HUM = 5
 
 ADD_FEAT_POLL_INTERVAL = 300  # 5 minutes
 
+class ApOp(Enum):
+    OFF = "@AP_OFF_W"
+    ON = "@AP_ON_W"
 
 class DHumOp(Enum):
     """Whether a device is on or off."""
@@ -158,6 +165,20 @@ class DeHumidifierDevice(Device):
             raise ValueError(f"Target humidity out of range: {humidity}")
         keys = self._get_cmd_keys(CMD_STATE_TARGET_HUM)
         await self.set(keys[0], keys[1], key=keys[2], value=humidity)
+
+    async def set_uv_nano(self, turn_on: bool):
+        """Set the UVnano mode on or off."""
+        op_mode = ApOp.ON if turn_on else ApOp.OFF
+        keys = self._get_cmd_keys(CMD_STATE_UV_NANO)
+        op_value = self.model_info.enum_value(keys[2], op_mode.value)
+        await self.set(keys[0], keys[1], key=keys[2], value=op_value)
+
+    async def set_mode_airclean(self, turn_on: bool):
+        """Set the Airclean mode on or off."""
+        op_mode = ApOp.ON if turn_on else ApOp.OFF
+        keys = self._get_cmd_keys(CMD_STATE_MODE_AIRCLEAN)
+        op_value = self.model_info.enum_value(keys[2], op_mode.value)
+        await self.set(keys[0], keys[1], key=keys[2], value=op_value)
 
     async def get_power(self):
         """Get the instant power usage in watts of the whole unit."""
@@ -314,9 +335,28 @@ class DeHumidifierStatus(DeviceStatus):
             return None
         return self._update_feature(DehumidifierFeatures.WATER_TANK_FULL, value)
 
+    @property
+    def uv_nano(self):
+        """Return UVnano Mode status."""
+        key = self._get_state_key(STATE_UV_NANO)
+        if (value := self.lookup_enum_bool(key)) is None:
+            return None
+        return self._update_feature(DehumidifierFeatures.UVNANO, value)
+
+    @property
+    def mode_airclean(self):
+        """Return AirClean Mode status."""
+        key = self._get_state_key(STATE_MODE_AIRCLEAN)
+        if (value := self.lookup_enum_bool(key)) is None:
+            return None
+        return self._update_feature(DehumidifierFeatures.MODE_AIRCLEAN, value)
+
+
     def _update_features(self):
         _ = [
             self.current_humidity,
             self.target_humidity,
             self.water_tank_full,
+            self.uv_nano,
+            self.mode_airclean,
         ]
